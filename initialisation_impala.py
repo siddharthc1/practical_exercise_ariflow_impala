@@ -12,7 +12,7 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('initialisation_script', default_args=default_args, schedule_interval="*/3 * * * *", start_date=datetime.now() - timedelta(minutes=1))
+dag = DAG('initialisation_script', default_args=default_args, schedule_interval="None", start_date=datetime.now() - timedelta(minutes=1))
 
 
 Clearing_Directories = BashOperator(
@@ -47,7 +47,7 @@ Create_Database = BashOperator(
 
 Sqoop_Job= BashOperator(
     task_id='Sqoop_Job',
-    bash_command="sqoop job --meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop --create practical_exercise_1.activitylog -- import --connect jdbc:mysql://localhost/practical_exercise_1 --username root --password-file /user/cloudera/root_pwd.txt --table activitylog -m 4 --hive-import --hive-database practical_exercise_1 --hive-table activitylog --incremental append --check-column id --last-value 0 ; sqoop job --meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop --exec practical_exercise_1.activitylog ",
+    bash_command="sqoop job --meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop --create practical_exercise_1.activitylog -- import --connect jdbc:mysql://localhost/practical_exercise_1 --username root --password-file /user/cloudera/root_pwd.txt --table activitylog -m 4 --hive-import --hive-database practical_exercise_1 --hive-table activitylog --incremental append --check-column id --last-value 0 ",
     dag=dag)
 
 Creating_Directory = BashOperator(
