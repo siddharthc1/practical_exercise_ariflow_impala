@@ -22,22 +22,17 @@ Then using Hive query it creates reporting tables namely user_report and user_to
     pip install PyMySQL==0.7.10
     ```
         
-4. Run the python file practical_exercise_data_generator.py to get MySQL database and CSV file with current timestamp.
 
-    ```
-    python practical_exercise_data_generator.py --load_data
-    python practical_exercise_data_generator.py --create_csv
-    ```
-5. Run the start.sh to start airflow deamons
+4. Run the start.sh to start airflow deamons
 
     ```
     ./initialise.sh
     ```
     
-6. Start the initialisation-impala.py script on airflow.
+5. Start the initialisation_script_1 dag on airflow.
     
 
-7. Now start airflow_task_script.py on airflow.
+6. Now start airflow_task_script_1 dag on airflow.
 
 
 
