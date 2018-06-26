@@ -12,7 +12,7 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('initialisation_script_1', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
+dag = DAG('initialisation_script', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
 
 
 Starting_Sqoop_Metajob = BashOperator(
