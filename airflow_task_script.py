@@ -1,4 +1,4 @@
-from airflow.operators import BashOperator
+﻿from airflow.operators import BashOperator
 from airflow.models import DAG
 from datetime import datetime, timedelta
 
@@ -12,12 +12,12 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('airflow_task_script', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
+dag = DAG('airflow_task_script_1', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
 
 
 generating_the_data= BashOperator(
     task_id='generating_the_data',
-    bash_command="python practical_exercise_data_generator.py --load_data; python practical_exercise_data_generator.py --create_csv ",
+    bash_command="cd ~/Documents/data/ ; python practical_exercise_data_generator.py --load_data; python practical_exercise_data_generator.py --create_csv",
     dag=dag)
 
 Sqoop_import_user= BashOperator(
@@ -32,12 +32,12 @@ Sqoop_import_activitylog= BashOperator(
 
 CSV_to_HDFS= BashOperator(
     task_id='CSV_to_HDFS',
-    bash_command="hadoop fs -put *.csv /user/cloudera/workshop/process/ ",
+    bash_command="hadoop fs -put ~/Documents/data/*.csv /user/cloudera/workshop/process/ ",
     dag=dag)
 
 Store_in_archieve= BashOperator(
     task_id='Store_in_archieve',
-    bash_command="hadoop fs -cp  /user/cloudera/workshop/process/* /user/cloudera/workshop/archieve/ ",
+    bash_command="sudo mv ~/Documents/data/*.csv ~/Documents/data/archive/",
     dag=dag)
 
 Current_time= BashOperator(
@@ -58,7 +58,7 @@ Create_user_report= BashOperator(
 Insert_user_report= BashOperator(
     task_id='Insert_user_report',
     bash_command=""" impala-shell -q "insert into practical_exercise_1.user_report 
-﻿select a.user_id,
+select a.user_id,
 COALESCE(b.co,0) as U,
 COALESCE(c.co,0) as I,
 COALESCE(d.co,0) as D,
@@ -76,7 +76,7 @@ left join (select user_id, count(user_id) as co from practical_exercise_1.user_u
 
 Insert_user_total= BashOperator(
     task_id='Insert_user_total',
-    bash_command=""" insert into practical_exercise_1.user_total select $NOW, sub1.t , case when sub2.t1 is NULL then sub1.t when sub2.t1 is not NULL then sub1.t-sub2.t1 end from (select count(distinct id) as t from practical_exercise_1.user)sub1, (select max(total_users) t1 from practical_exercise_1.user_total) sub2;" """,
+    bash_command="""impala-shell -q "insert into practical_exercise_1.user_total select current_timestamp(), sub1.t , case when sub2.t1 is NULL then sub1.t when sub2.t1 is not NULL then sub1.t-sub2.t1 end from (select count(distinct id) as t from practical_exercise_1.user)sub1, (select max(total_users) t1 from practical_exercise_1.user_total) sub2;" """,
     dag=dag)
 
 
