@@ -1,4 +1,4 @@
-from airflow.operators import BashOperator
+﻿from airflow.operators import BashOperator
 from airflow.models import DAG
 from datetime import datetime, timedelta
 
@@ -22,7 +22,7 @@ Starting_Sqoop_Metajob = BashOperator(
 
 Deleting_Creating_Directories = BashOperator(
     task_id='Deleting_Creating_Directories',
-    bash_command="hadoop fs -rm -r /user/cloudera/workshop/; hadoop fs -mkdir /user/cloudera/workshop/ ",
+    bash_command="hadoop fs -rm -r /user/cloudera/workshop/; hadoop fs -mkdir /user/cloudera/workshop/; hadoop fs -mkdir /user/cloudera/workshop/process/; ",
     dag=dag)
 
 Drop_Database = BashOperator(
@@ -40,10 +40,6 @@ Sqoop_Job= BashOperator(
     bash_command="sqoop job --meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop --create practical_exercise_1.activitylog -- import --connect jdbc:mysql://localhost/practical_exercise_1 --username root --password-file /user/cloudera/root_pwd.txt --table activitylog -m 4 --hive-import --hive-database practical_exercise_1 --hive-table activitylog --incremental append --check-column id --last-value 0 ",
     dag=dag)
 
-Creating_Directory = BashOperator(
-    task_id='Creating_Directory',
-    bash_command="hadoop fs -mkdir /user/cloudera/workshop/process/; hadoop fs -mkdir /user/cloudera/workshop/archieve/  ",
-    dag=dag)
 
 External_table = BashOperator(
     task_id='External_table',
@@ -55,11 +51,12 @@ Creating_table_user_total = BashOperator(
     bash_command="""impala-shell -q "create table if not exists practical_exercise_1.user_total(time_ran timestamp, total_users bigint, users_added bigint);" """,
     dag=dag)
 
-Starting_Sqoop_Metajob.set_downstream(Deleting_Creating_Directories)
-Deleting_Creating_Directories.set_downstream(Drop_Database)
 Drop_Database.set_downstream(Create_Database)
+Starting_Sqoop_Metajob.set_downstream(Sqoop_Job)
 Create_Database.set_downstream(Sqoop_Job)
-Sqoop_Job.set_downstream(Creating_Directory)
-Creating_Directory.set_downstream(External_table)
-External_table.set_downstream(Creating_table_user_total)
+
+Deleting_Creating_Directories.set_downstream(External_table)
+Create_Database.set_downstream(External_table)
+
+Create_Database.set_downstream(Creating_table_user_total)
 

@@ -1,4 +1,4 @@
-﻿from airflow.operators import BashOperator
+﻿﻿from airflow.operators import BashOperator
 from airflow.models import DAG
 from datetime import datetime, timedelta
 
@@ -35,14 +35,9 @@ CSV_to_HDFS= BashOperator(
     bash_command="hadoop fs -put ~/Documents/data/*.csv /user/cloudera/workshop/process/ ",
     dag=dag)
 
-Store_in_archieve= BashOperator(
+Store_in_archive= BashOperator(
     task_id='Store_in_archieve',
     bash_command="sudo mv ~/Documents/data/*.csv ~/Documents/data/archive/",
-    dag=dag)
-
-Current_time= BashOperator(
-    task_id='Current_time',
-    bash_command="NOW=$(date +%s) ",
     dag=dag)
 
 Drop_user_report_table= BashOperator(
@@ -57,14 +52,17 @@ Create_user_report= BashOperator(
 
 Insert_user_report= BashOperator(
     task_id='Insert_user_report',
-    bash_command=""" impala-shell -q "insert into practical_exercise_1.user_report 
+    bash_command=""" NOW=$(date +%s); impala-shell -q "invalidate metadata practical_exercise_1.user;";
+impala-shell -q "invalidate metadata practical_exercise_1.user_upload_dump;";
+impala-shell -q "invalidate metadata practical_exercise_1.activitylog;"; 
+impala-shell -q "insert into practical_exercise_1.user_report 
 select a.user_id,
-COALESCE(b.co,0) as U,
-COALESCE(c.co,0) as I,
-COALESCE(d.co,0) as D,
-COALESCE(e.co,NULL) as type,
-COALESCE(f.co,FALSE) as bool,
-COALESCE(g.co,0) as upload
+COALESCE(b.co,0) as total_updates,
+COALESCE(c.co,0) as total_inserts,
+COALESCE(d.co,0) as total_deletes,
+COALESCE(e.co,NULL) as last_activity_type,
+COALESCE(f.co,FALSE) as is_active,
+COALESCE(g.co,0) as upload_count
 from (select id as user_id from practical_exercise_1.user group by id) as a
 left join (select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='UPDATE' group by user_id) as b on a.user_id=b.user_id
 left join (select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='INSERT' group by user_id) as c on a.user_id=c.user_id
@@ -76,19 +74,28 @@ left join (select user_id, count(user_id) as co from practical_exercise_1.user_u
 
 Insert_user_total= BashOperator(
     task_id='Insert_user_total',
-    bash_command="""impala-shell -q "insert into practical_exercise_1.user_total select current_timestamp(), sub1.t , case when sub2.t1 is NULL then sub1.t when sub2.t1 is not NULL then sub1.t-sub2.t1 end from (select count(distinct id) as t from practical_exercise_1.user)sub1, (select max(total_users) t1 from practical_exercise_1.user_total) sub2;" """,
+    bash_command="""impala-shell -q "invalidate metadata practical_exercise_1.user;"; impala-shell -q "insert into practical_exercise_1.user_total select current_timestamp(), sub1.t , case when sub2.t1 is NULL then sub1.t when sub2.t1 is not NULL then sub1.t-sub2.t1 end from (select count(distinct id) as t from practical_exercise_1.user)sub1, (select max(total_users) t1 from practical_exercise_1.user_total) sub2;" """,
     dag=dag)
 
 
 generating_the_data.set_downstream(Sqoop_import_user)
-Sqoop_import_user.set_downstream(Sqoop_import_activitylog)
-Sqoop_import_activitylog.set_downstream(CSV_to_HDFS)
-CSV_to_HDFS.set_downstream(Store_in_archieve)
-Store_in_archieve.set_downstream(Current_time)
-Current_time.set_downstream(Drop_user_report_table)
+generating_the_data.set_downstream(Sqoop_import_activitylog)
+generating_the_data.set_downstream(CSV_to_HDFS)
+
+CSV_to_HDFS.set_downstream(Store_in_archive)
+
+Sqoop_import_user.set_downstream(Drop_user_report_table)
+Sqoop_import_activitylog.set_downstream(Drop_user_report_table)
+CSV_to_HDFS.set_downstream(Drop_user_report_table)
+
 Drop_user_report_table.set_downstream(Create_user_report)
 Create_user_report.set_downstream(Insert_user_report)
-Insert_user_report.set_downstream(Insert_user_total)
+
+Sqoop_import_user.set_downstream(Insert_user_total)
+Sqoop_import_activitylog.set_downstream(Insert_user_total)
+CSV_to_HDFS.set_downstream(Insert_user_total)
+
+
 
 
 
