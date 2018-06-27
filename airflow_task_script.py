@@ -55,21 +55,7 @@ Insert_user_report= BashOperator(
     bash_command=""" NOW=$(date +%s); impala-shell -q "invalidate metadata practical_exercise_1.user;";
 impala-shell -q "invalidate metadata practical_exercise_1.user_upload_dump;";
 impala-shell -q "invalidate metadata practical_exercise_1.activitylog;"; 
-impala-shell -q "insert into practical_exercise_1.user_report 
-select a.user_id,
-COALESCE(b.co,0) as total_updates,
-COALESCE(c.co,0) as total_inserts,
-COALESCE(d.co,0) as total_deletes,
-COALESCE(e.co,NULL) as last_activity_type,
-COALESCE(f.co,FALSE) as is_active,
-COALESCE(g.co,0) as upload_count
-from (select id as user_id from practical_exercise_1.user group by id) as a
-left join (select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='UPDATE' group by user_id) as b on a.user_id=b.user_id
-left join (select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='INSERT' group by user_id) as c on a.user_id=c.user_id
-left join(select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='DELETE' group by user_id) as d on a.user_id=d.user_id
-left join (SELECT a.user_id, a.type as co FROM practical_exercise_1.activitylog a INNER JOIN (SELECT user_id, MAX(ti) as ti FROM practical_exercise_1.activitylog GROUP BY user_id ) AS b ON a.user_id = b.user_id AND a.ti = b.ti) as e on a.user_id=e.user_id
-left join (select user_id, if(count(*) = 0, FALSE, TRUE) as co from practical_exercise_1.activitylog where ti > $NOW-172800 group by user_id) as f on a.user_id=f.user_id
-left join (select user_id, count(user_id) as co from practical_exercise_1.user_upload_dump group by user_id) as g on a.user_id=g.user_id;" """,
+impala-shell -q "select a.user_id,COALESCE(b.co,0) as total_updates,COALESCE(c.co,0) as total_inserts, COALESCE(d.co,0) as total_deletes, e.co as last_activity_type, COALESCE(f.co,FALSE) as is_active, COALESCE(g.co,0) as upload_count from (select id as user_id from practical_exercise_1.user group by id) as a left join (select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='UPDATE' group by user_id) as b on a.user_id=b.user_id left join (select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='INSERT' group by user_id) as c on a.user_id=c.user_id left join(select user_id, count(user_id) as co from practical_exercise_1.activitylog where type='DELETE' group by user_id) as d on a.user_id=d.user_id left join (SELECT a.user_id, a.type as co FROM practical_exercise_1.activitylog a INNER JOIN (SELECT user_id, MAX(\`timestamp\`) as ti FROM practical_exercise_1.activitylog GROUP BY user_id ) AS b ON a.user_id = b.user_id AND a.\`timestamp\` = b.ti) as e on a.user_id=e.user_id left join (select user_id, if(count(*) = 0, FALSE, TRUE) as co from practical_exercise_1.activitylog where \`timestamp\` > $NOW-172800 group by user_id) as f on a.user_id=f.user_id left join (select user_id, count(user_id) as co from practical_exercise_1.user_upload_dump group by user_id) as g on a.user_id=g.user_id;" """,
     dag=dag)
 
 Insert_user_total= BashOperator(
