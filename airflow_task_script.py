@@ -12,7 +12,7 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('airflow_task_script_1', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
+dag = DAG('airflow_task_script', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
 
 
 generating_the_data= BashOperator(
