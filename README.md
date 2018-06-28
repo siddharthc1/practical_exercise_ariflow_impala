@@ -1,7 +1,6 @@
 **DESCRIPTION**
 
-In this project, data is imported from MySQL database and one type of CSV file and uploaded into Hive.
-Then using Hive query it creates reporting tables namely user_report and user_total and it is scheduled using Apache Airflow.
+In this project, two tables are improted from MySQL database to Hive and one type of CSV file is uploaded into HDFS. Reporting tables user_report and user_total are created using the tables improted to Hive and an External created from the CSV files and it is scheduled using Apache Airflow.
 
 
 **SETTING THE ENVIRONMENT AND USAGE**
