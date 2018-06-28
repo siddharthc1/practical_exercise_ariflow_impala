@@ -1,4 +1,4 @@
-﻿from airflow.operators import BashOperator
+﻿﻿from airflow.operators import BashOperator
 from airflow.models import DAG
 from datetime import datetime, timedelta
 
@@ -12,7 +12,7 @@ default_args = {
     'retry_delay': timedelta(minutes=5),
 }
 
-dag = DAG('initialisation_script', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
+dag = DAG('initialisation_script_1', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
 
 
 Starting_Sqoop_Metajob = BashOperator(
@@ -20,14 +20,9 @@ Starting_Sqoop_Metajob = BashOperator(
     bash_command="nohup sqoop metastore &",
     dag=dag)
 
-Deleting_Creating_Directories = BashOperator(
-    task_id='Deleting_Creating_Directories',
-    bash_command="hadoop fs -rm -r /user/cloudera/workshop/; hadoop fs -mkdir /user/cloudera/workshop/; hadoop fs -mkdir /user/cloudera/workshop/process/; ",
-    dag=dag)
-
-Drop_Database = BashOperator(
-    task_id='Drop_Database',
-    bash_command=""" impala-shell -q "drop database if exists practical_exercise_1 cascade;" """,
+Creating_Directories = BashOperator(
+    task_id='Creating_Directories',
+    bash_command=" hadoop fs -mkdir -p /user/cloudera/workshop/process/ ",
     dag=dag)
 
 Create_Database = BashOperator(
@@ -51,12 +46,9 @@ Creating_table_user_total = BashOperator(
     bash_command="""impala-shell -q "create table if not exists practical_exercise_1.user_total(time_ran timestamp, total_users bigint, users_added bigint);" """,
     dag=dag)
 
-Drop_Database.set_downstream(Create_Database)
 Starting_Sqoop_Metajob.set_downstream(Sqoop_Job)
-Create_Database.set_downstream(Sqoop_Job)
-
-Deleting_Creating_Directories.set_downstream(External_table)
+Creating_Directories.set_downstream(External_table)
 Create_Database.set_downstream(External_table)
-
+Create_Database.set_downstream(Sqoop_Job)
 Create_Database.set_downstream(Creating_table_user_total)
 

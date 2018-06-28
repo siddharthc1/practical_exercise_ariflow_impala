@@ -15,29 +15,55 @@ default_args = {
 dag = DAG('airflow_task_script_1', default_args=default_args, schedule_interval=None, start_date=datetime.now() - timedelta(minutes=1))
 
 
-generating_the_data= BashOperator(
-    task_id='generating_the_data',
-    bash_command="cd ~/Documents/data/ ; python practical_exercise_data_generator.py --load_data; python practical_exercise_data_generator.py --create_csv",
+generating_the_MySql_data= BashOperator(
+    task_id='generating_the_MySql_data',
+    bash_command="cd ~/Documents/data/ ; python practical_exercise_data_generator.py --load_data;",
+    dag=dag)
+
+generating_the_CSV_data= BashOperator(
+    task_id='generating_the_CSV_data',
+    bash_command="cd ~/Documents/data/ ; python practical_exercise_data_generator.py --create_csv",
     dag=dag)
 
 Sqoop_import_user= BashOperator(
     task_id='Sqoop_import_user',
-    bash_command="""  sqoop import --connect jdbc:mysql://localhost/practical_exercise_1 --username root --password-file /user/cloudera/root_pwd.txt --table user -m 4 --hive-import --hive-overwrite --hive-database practical_exercise_1 --hive-table user; impala-shell -q "invalidate metadata practical_exercise_1.user;"; """,
+    bash_command=""" 
+sqoop import --connect jdbc:mysql://localhost/practical_exercise_1 --username root --password-file /user/cloudera/root_pwd.txt --table user -m 4 --hive-import --hive-overwrite --hive-database practical_exercise_1 --hive-table user;
+if [ $? -ne 0 ];then
+	echo Failed at importing user table
+	exit 1
+fi
+impala-shell -q "invalidate metadata practical_exercise_1.user;" 
+""",
     dag=dag)
 
 Sqoop_import_activitylog= BashOperator(
     task_id='Sqoop_import_activitylog',
-    bash_command=""" sqoop job --meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop --exec practical_exercise_1.activitylog; impala-shell -q "invalidate metadata practical_exercise_1.activitylog;";  """,
+    bash_command=""" 
+sqoop job --meta-connect jdbc:hsqldb:hsql://localhost:16000/sqoop --exec practical_exercise_1.activitylog; 
+if [ $? -ne 0 ];then
+	echo Failed at importing activitylog table
+	exit 1
+fi
+impala-shell -q "invalidate metadata practical_exercise_1.activitylog;";  
+""",
     dag=dag)
 
 CSV_to_HDFS= BashOperator(
     task_id='CSV_to_HDFS',
-    bash_command=""" hadoop fs -put ~/Documents/data/*.csv /user/cloudera/workshop/process/ ; impala-shell -q "invalidate metadata practical_exercise_1.user_upload_dump;"; """,
+    bash_command=""" 
+hadoop fs -put ~/Documents/data/*.csv /user/cloudera/workshop/process/ ; 
+if [ $? -ne 0 ];then
+	echo Failed at importing user table
+	exit 1
+fi
+impala-shell -q "invalidate metadata practical_exercise_1.user_upload_dump;"; 
+""",
     dag=dag)
 
 Archiving= BashOperator(
     task_id='Archiving',
-    bash_command="sudo mv ~/Documents/data/*.csv ~/Documents/data/archive/",
+    bash_command="mv ~/Documents/data/*.csv ~/Documents/data/archive/",
     dag=dag)
 
 Drop_user_report_table= BashOperator(
@@ -62,9 +88,9 @@ Insert_user_total= BashOperator(
     dag=dag)
 
 
-generating_the_data.set_downstream(Sqoop_import_user)
-generating_the_data.set_downstream(Sqoop_import_activitylog)
-generating_the_data.set_downstream(CSV_to_HDFS)
+generating_the_MySql_data.set_downstream(Sqoop_import_user)
+generating_the_MySql_data.set_downstream(Sqoop_import_activitylog)
+generating_the_CSV_data.set_downstream(CSV_to_HDFS)
 
 CSV_to_HDFS.set_downstream(Archiving)
 CSV_to_HDFS.set_downstream(Drop_user_report_table)
