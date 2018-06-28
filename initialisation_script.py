@@ -17,7 +17,12 @@ dag = DAG('initialisation_script_1', default_args=default_args, schedule_interva
 
 Starting_Sqoop_Metajob = BashOperator(
     task_id='Starting_Sqoop_Metajob',
-    bash_command="nohup sqoop metastore &",
+    bash_command=""" 
+metastore_jobs=`ps -eaf|grep "Sqoop meta" | wc -l`
+if [ $metastore_jobs -lt 2 ];then
+	nohup sqoop metastore &	
+fi
+""",
     dag=dag)
 
 Creating_Directories = BashOperator(
